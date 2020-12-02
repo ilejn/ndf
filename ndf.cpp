@@ -135,18 +135,18 @@ void ASTFunction::normTree()
         {
             only_and = false;
         }
-        if (child->name == "and")
+        if (child->isAnd())
         {
             only_or = false;
         }
     }
 
-    if ((only_or && name == "or" || only_and && name == "and") && children.size()>1)
+    if ((only_or && isOr() || only_and && isAnd()) && children.size() > 1)
     {
         ASTs new_children;
         for (const auto & child : children)
         {
-            if(child->name == "or" || child->name == "and")
+            if(child->isOr() || child->isAnd())
             {
                 std::copy(child->children.begin(), child->children.end(), std::back_inserter(new_children));
             }
@@ -157,7 +157,6 @@ void ASTFunction::normTree()
         }
         children = new_children;
     }
-
 
     for (const auto & child : children)
     {
