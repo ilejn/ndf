@@ -60,6 +60,27 @@ ASTPtr distribute(ASTPtr node)
         if (or_child == node->children.end())
         {
             return node;
+
+
+
+            // ASTs lst;
+            // for (auto & arg : node->children)
+            // {
+            //     lst.push_back(distribute(arg));
+            // }
+
+            // if (lst.size() == 1)
+            // {
+            //     return lst[0];
+            // }
+            // else
+            // {
+            //     auto ret = std::make_shared<ASTFunction>("and");
+            //     ret->children = lst;
+            //     // return distribute(ret);
+            //     return ret;
+
+            // }
         }
 
         auto rest = std::make_shared<ASTFunction>("and");
@@ -126,35 +147,24 @@ ASTPtr distribute(ASTPtr node)
 
 void ASTFunction::normTree()
 {
-    bool only_or = true;
-    bool only_and = true;
-
-    for (const auto & child : children)
+    for (bool touched = true; touched; )
     {
-        if (child->isOr())
-        {
-            only_and = false;
-        }
-        if (child->isAnd())
-        {
-            only_or = false;
-        }
-    }
+        touched = false;
 
-    if ((only_or && isOr() || only_and && isAnd()) && children.size() > 1)
-    {
         ASTs new_children;
         for (const auto & child : children)
         {
-            if(child->isOr() || child->isAnd())
+            if (child->isOr() && isOr() || child->isAnd() && isAnd())
             {
                 std::copy(child->children.begin(), child->children.end(), std::back_inserter(new_children));
+                touched = true;
             }
             else
             {
                 new_children.push_back(child);
             }
         }
+
         children = new_children;
     }
 
@@ -260,12 +270,69 @@ ASTPtr f5()
     return node1;
 }
 
+
+ASTPtr f6()
+{
+    auto node1 = std::make_shared<ASTFunction>("and");
+    auto node11 = std::make_shared<ASTFunction>("literal", "one_1");
+    auto node12 = std::make_shared<ASTFunction>("literal", "one_2");
+    auto node13 = std::make_shared<ASTFunction>("and");
+    node1->children.push_back(node11);
+    node1->children.push_back(node12);
+    node1->children.push_back(node13);
+
+
+    auto node131 = std::make_shared<ASTFunction>("or");
+    auto node1311 = std::make_shared<ASTFunction>("literal", "three_1");
+    auto node1312 = std::make_shared<ASTFunction>("literal", "three_2");
+    node131->children.push_back(node1311);
+    node131->children.push_back(node1312);
+
+    auto node132 = std::make_shared<ASTFunction>("literal", "two_1");
+    node13->children.push_back(node131);
+    node13->children.push_back(node132);
+
+    return node1;
+}
+
+ASTPtr f7()
+{
+
+
+    auto node1 = std::make_shared<ASTFunction>("and");
+    auto node2 = std::make_shared<ASTFunction>("or");
+    auto node21 = std::make_shared<ASTFunction>("literal", "two_1");
+    auto node22 = std::make_shared<ASTFunction>("literal", "two_2");
+    node2->children.push_back(node21);
+    node2->children.push_back(node22);
+    auto node3 = std::make_shared<ASTFunction>("or");
+    auto node31 = std::make_shared<ASTFunction>("literal", "three_1");
+    auto node32 = std::make_shared<ASTFunction>("literal", "three_2");
+    node3->children.push_back(node31);
+    node3->children.push_back(node32);
+
+    node1->children.push_back(node2);
+    node1->children.push_back(node3);
+
+    auto node0 = std::make_shared<ASTFunction>("or");
+    auto node01 = std::make_shared<ASTFunction>("literal", "zero_1");
+    node0->children.push_back(node01);
+    node0->children.push_back(node1);
+
+    return node0;
+}
+
+
+
 int main(int argc, char** argv)
 {
-    for (auto f : {f1, f2, f3, f4, f5})
+    for (auto f : {f1, f2, f3, f4, f5, f6, f7})
     {
         auto root = f();
         std::cout << std::endl << "Original ===========================" << std::endl;
+        root->dumpTree(std::cout);
+        root->normTree();
+        std::cout << "Normalized ===========================" << std::endl;
         root->dumpTree(std::cout);
         auto distributed = distribute(root);
         std::cout << "Distributed ===========================" << std::endl;
