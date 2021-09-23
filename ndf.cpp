@@ -53,6 +53,15 @@ ASTPtr distribute(ASTPtr node)
 
     if (node->isAnd())
     {
+        {
+            ASTs lst;
+            for (auto & arg : node->children)
+            {
+                lst.push_back(distribute(arg));
+            }
+            node->children = lst;
+        }
+
         auto or_child = std::find_if(node->children.begin(), node->children.end(), [](auto & arg)
             {
                 return arg->isOr();
@@ -60,27 +69,6 @@ ASTPtr distribute(ASTPtr node)
         if (or_child == node->children.end())
         {
             return node;
-
-
-
-            // ASTs lst;
-            // for (auto & arg : node->children)
-            // {
-            //     lst.push_back(distribute(arg));
-            // }
-
-            // if (lst.size() == 1)
-            // {
-            //     return lst[0];
-            // }
-            // else
-            // {
-            //     auto ret = std::make_shared<ASTFunction>("and");
-            //     ret->children = lst;
-            //     // return distribute(ret);
-            //     return ret;
-
-            // }
         }
 
         auto rest = std::make_shared<ASTFunction>("and");
@@ -143,7 +131,6 @@ ASTPtr distribute(ASTPtr node)
         return node;
     }
 }
-
 
 void ASTFunction::normTree()
 {
@@ -297,8 +284,6 @@ ASTPtr f6()
 
 ASTPtr f7()
 {
-
-
     auto node1 = std::make_shared<ASTFunction>("and");
     auto node2 = std::make_shared<ASTFunction>("or");
     auto node21 = std::make_shared<ASTFunction>("literal", "two_1");
@@ -322,11 +307,52 @@ ASTPtr f7()
     return node0;
 }
 
+ASTPtr f8()
+{
+    auto node1 = std::make_shared<ASTFunction>("or");
+    auto node11 = std::make_shared<ASTFunction>("or");
+    auto node12 = std::make_shared<ASTFunction>("literal", "two_1");
+    node1->children.push_back(node11);
+    node1->children.push_back(node12);
+    auto node111 = std::make_shared<ASTFunction>("literal", "three_1");
+    auto node112 = std::make_shared<ASTFunction>("literal", "three_2");
+    node11->children.push_back(node111);
+    node11->children.push_back(node112);
 
+    return node1;
+}
+
+ASTPtr f9()
+{
+    auto node1 = std::make_shared<ASTFunction>("and");
+    auto node11 = std::make_shared<ASTFunction>("literal", "literal_equal");
+    auto node12 = std::make_shared<ASTFunction>("or");
+    auto node13 = std::make_shared<ASTFunction>("or");
+
+    node1->children.push_back(node11);
+    node1->children.push_back(node12);
+    node1->children.push_back(node13);
+
+
+    auto node121 = std::make_shared<ASTFunction>("literal", "literal_more");
+    auto node122 = std::make_shared<ASTFunction>("literal", "literal_less");
+
+    node12->children.push_back(node121);
+    node12->children.push_back(node122);
+
+
+    auto node131 = std::make_shared<ASTFunction>("literal", "literal_more_or_equal");
+    auto node132 = std::make_shared<ASTFunction>("literal", "literal_less_or_equal");
+
+    node13->children.push_back(node131);
+    node13->children.push_back(node132);
+
+    return node1;
+}
 
 int main(int argc, char** argv)
 {
-    for (auto f : {f1, f2, f3, f4, f5, f6, f7})
+    for (auto f : {f1, f2, f3, f4, f5, f6, f7, f8, f9})
     {
         auto root = f();
         std::cout << std::endl << "Original ===========================" << std::endl;
