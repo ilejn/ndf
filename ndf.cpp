@@ -71,18 +71,14 @@ ASTPtr distribute(ASTPtr node)
             return node;
         }
 
-        auto rest = std::make_shared<ASTFunction>("and");
+        ASTs rest_lst;
         for (auto & arg : node->children)
         {
             if (*arg == **or_child)
             {
                 continue;
             }
-            rest->children.push_back(arg);
-        }
-        if (rest->children.size() == 1)
-        {
-            rest = rest->children[0];
+            rest_lst.push_back(arg);
         }
 
         ASTs lst;
@@ -90,7 +86,7 @@ ASTPtr distribute(ASTPtr node)
         {
             auto and_node = std::make_shared<ASTFunction>("and");
             and_node->children.push_back(arg);
-            and_node->children.push_back(rest);
+            and_node->children.insert(and_node->children.end(), std::begin(rest_lst), std::end(rest_lst));
 
             lst.push_back(distribute(and_node));
         }
@@ -114,17 +110,9 @@ ASTPtr distribute(ASTPtr node)
             lst.push_back(distribute(arg));
         }
 
-        if (lst.size() == 1)
-        {
-            return lst[0];
-        }
-        else
-        {
-            auto ret = std::make_shared<ASTFunction>("or");
-            ret->children = lst;
-            return ret;
-        }
+        node->children = lst;
 
+        return node;
     }
     else
     {
